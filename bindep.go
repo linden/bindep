@@ -3,6 +3,7 @@ package bindep
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,8 @@ import (
 
 // Global `bindep` directory, so deps can be reused. Default behaviour is a shared temporary directory.
 var Path = filepath.Join(os.TempDir(), ".bindep")
+
+var Debug = false
 
 func New(repo, commit string, flags []string) (string, error) {
 	// Ensure the global `bindep` directory exists.
@@ -47,6 +50,13 @@ func New(repo, commit string, flags []string) (string, error) {
 	cmd := func(name string, args ...string) error {
 		c := exec.Command(name, args...)
 		c.Dir = tmp
+
+		if Debug {
+			fmt.Println(name, args)
+
+			c.Stderr = os.Stderr
+			c.Stdout = os.Stdout
+		}
 
 		return c.Run()
 	}

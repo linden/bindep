@@ -14,7 +14,7 @@ var Path = filepath.Join(os.TempDir(), ".bindep")
 
 var Debug = false
 
-func New(repo, commit string, flags []string) (string, error) {
+func New(repo, commit string, args []string) (string, error) {
 	// Ensure the global `bindep` directory exists.
 	err := os.Mkdir(Path, 0777)
 	if err != nil && !os.IsExist(err) {
@@ -71,15 +71,9 @@ func New(repo, commit string, flags []string) (string, error) {
 		return "", err
 	}
 
-	args := []string{"go", "build"}
+	args = append([]string{"build", "-o", path}, args...)
 
-	if len(flags) != 0 {
-		args = append(args, flags...)
-	}
-
-	args = append(args, "-o", path)
-
-	err = cmd("go", "build", "-o", path)
+	err = cmd("go", args...)
 	if err != nil {
 		return "", err
 	}

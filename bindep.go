@@ -14,7 +14,16 @@ var Path = filepath.Join(os.TempDir(), ".bindep")
 
 var Debug = false
 
-func New(repo, commit string, args []string) (string, error) {
+type Config struct {
+	Repo   string
+	Commit string
+
+	Args []string
+
+	Builder func(path string, cmd func(name string, args ...string) error) error
+}
+
+func New(cfg *Config) (string, error) {
 	// Ensure the global `bindep` directory exists.
 	err := os.Mkdir(Path, 0777)
 	if err != nil && !os.IsExist(err) {
@@ -23,8 +32,8 @@ func New(repo, commit string, args []string) (string, error) {
 
 	// Hash the git repo + commit.
 	hash := sha256.New()
-	hash.Write([]byte(repo))
-	hash.Write([]byte(commit))
+	hash.Write([]byte(cfg.Repo))
+	hash.Write([]byte(cfg.Commit))
 	sum := hash.Sum(nil)
 
 	// Derive the path.
@@ -61,17 +70,21 @@ func New(repo, commit string, args []string) (string, error) {
 		return c.Run()
 	}
 
-	err = cmd("git", "clone", repo, ".")
+	err = cmd("git", "clone", cfg.Repo, ".")
 	if err != nil {
 		return "", err
 	}
 
-	err = cmd("git", "checkout", commit)
+	err = cmd("git", "checkout", cfg.Commit)
 	if err != nil {
 		return "", err
 	}
 
-	args = append([]string{"build", "-o", path}, args...)
+	if cfg.Builder != nil {
+		return path, cfg.Builder(path, cmd)
+	}
+
+	args := append([]string{"build", "-o", path}, cfg.Args...)
 
 	err = cmd("go", args...)
 	if err != nil {

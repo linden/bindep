@@ -41,6 +41,8 @@ func New(cfg *Config) (string, error) {
 	// Derive the path.
 	path := filepath.Join(Path, hex.EncodeToString(sum))
 
+	git := cfg.Repo != ""
+
 	// Check if the file already exists.
 	_, err = os.Stat(path)
 	if err != nil && !os.IsNotExist(err) {
@@ -49,8 +51,10 @@ func New(cfg *Config) (string, error) {
 			return "", err
 		}
 
-		// Binary is already built.
-		return path, nil
+		if git {
+			// Binary is already built.
+			return path, nil
+		}
 	}
 
 	tmp, err := os.MkdirTemp("", "")
@@ -74,7 +78,7 @@ func New(cfg *Config) (string, error) {
 		return c.Run()
 	}
 
-	if cfg.Repo != "" {
+	if git {
 		err = cmd("git", "clone", cfg.Repo, ".")
 		if err != nil {
 			return "", err

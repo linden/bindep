@@ -18,6 +18,8 @@ type Config struct {
 	Repo   string
 	Commit string
 
+	Dir string
+
 	Args []string
 
 	Builder func(path string, cmd func(name string, args ...string) error) error
@@ -56,9 +58,11 @@ func New(cfg *Config) (string, error) {
 		return "", err
 	}
 
+	dir := tmp
+
 	cmd := func(name string, args ...string) error {
 		c := exec.Command(name, args...)
-		c.Dir = tmp
+		c.Dir = dir
 
 		if Debug {
 			fmt.Println(name, args)
@@ -70,14 +74,22 @@ func New(cfg *Config) (string, error) {
 		return c.Run()
 	}
 
-	err = cmd("git", "clone", cfg.Repo, ".")
-	if err != nil {
-		return "", err
+	if cfg.Repo != "" {
+		err = cmd("git", "clone", cfg.Repo, ".")
+		if err != nil {
+			return "", err
+		}
+
+		if cfg.Commit != "" {
+			err = cmd("git", "checkout", cfg.Commit)
+			if err != nil {
+				return "", err
+			}
+		}
 	}
 
-	err = cmd("git", "checkout", cfg.Commit)
-	if err != nil {
-		return "", err
+	if cfg.Dir != "" {
+		dir = cfg.Dir
 	}
 
 	if cfg.Builder != nil {

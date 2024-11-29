@@ -45,16 +45,19 @@ func New(cfg *Config) (string, error) {
 
 	// Check if the file already exists.
 	_, err = os.Stat(path)
-	if err != nil && !os.IsNotExist(err) {
-		// Ensure the error is a non-existence issue.
-		if !os.IsExist(err) {
-			return "", err
-		}
 
-		if git {
-			// Binary is already built.
-			return path, nil
-		}
+	switch {
+	// Binary is already built.
+	case err == nil && git:
+		return path, nil
+
+	// Binary does not exist.
+	case os.IsNotExist(err):
+		// nop
+
+	// Error is not a non-existence issue.
+	case err != nil:
+		return "", err
 	}
 
 	tmp, err := os.MkdirTemp("", "")
